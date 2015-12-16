@@ -42,10 +42,13 @@
   (is (= true (l/variable? 'bar))))
 
 (deftest lookup-test
-  (let [cur-env (assoc global-env :foo 43)]
-    (is (= 43 (l/lookup-variable 'foo cur-env)))))
+  (swap! atom-env assoc :foo 43)
+  (is (= 43 (l/lookup-variable "foo" atom-env)))
+  (swap! atom-env dissoc :foo)
+  (is (= nil (l/lookup-variable "foo" atom-env))))
 
-(deftest atom-test
+;; not sure why I wrote this test
+#_(deftest atom-test
   (is (= true (= @atom-env global-env))))
 
 (deftest tagged-test
@@ -60,3 +63,7 @@
 
 (deftest basic-eval-test
   (is (= "foo" (l/my-eval "foo" nil))))
+
+(deftest eval-def-test
+  (l/eval-definition '(define foo 99) atom-env)
+  (is (= (:foo @atom-env) 99)))

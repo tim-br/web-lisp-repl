@@ -32,9 +32,29 @@
   [exp]
   (tagged-list? exp 'define))
 
+(defn lookup?
+  [exp]
+  (tagged-list? exp 'lookup))
+
 (defn eval-definition
   [exp env]
-  (swap! env assoc (keyword (first (rest env))) (last env)))
+  (js/console.log "what is the func? " exp)
+  (js/console.log "is seqable? " (seq? exp))
+  (swap! env assoc (keyword (first (rest exp))) (last exp))
+  (js/console.log "do I get here?"))
+
+(defn lookup-variable
+  ;[var]
+  ;(lookup-variable var global-env)
+  [var env]
+  (js/console.log "the var is " var)
+  (let [new-var (keyword var)]
+    (new-var @env)))
+
+(defn eval-lookup
+  [exp env]
+  (let [lookup-var (keyword (last exp))]
+    (lookup-variable lookup-var env)))
 
 (defn self-evaluating?
   [exp]
@@ -46,16 +66,14 @@
   [exp]
   (symbol? exp))
 
-(defn lookup-variable
-  [var env]
-  (let [new-var (keyword var)]
-    (new-var env)))
-
 (defn my-eval
   [exp env]
-  (js/console.log "the exp is " (keyword exp))
+  (js/console.log "the exp is " exp)
   (cond (self-evaluating? exp) exp
-        (definition? exp) (eval-definition exp global-env)
+        (definition? exp)  (do (eval-definition exp global-env)
+                                 ((keyword (first (rest exp))) @global-env))
+        (lookup? exp) (eval-lookup exp global-env)
+
         :else "ERROR ---- unknown exp"))
 
 (defn do-s []
@@ -65,9 +83,8 @@
   :foo)
 
 (defn handle-change [param]
-  (let [str-param (str param)]
-    (js/console.log "is string in handle-change? " (string? str-param)) ;; true
-    (swap! app-state assoc :text str-param)))
+  (js/console.log "is string in handle-change? " (string? param)) ;; true
+  (swap! app-state assoc :text param))
 
 #_(defn is-first-char-quote? [str]
   (let [ch (js/charAt str 0)]
@@ -78,7 +95,8 @@
     om/IRenderState
       (render-state [this {:keys [reade]}]
         (dom/button #js {:onKeyDown #(when (= (.-key %) "Enter")
-                                    (put! reade :anything))}
+                                    (put! reade :anything))
+                         :onClick #(put! reade :anything)}
                     (:text text)))))
 
 (defn result-com [res owner]
@@ -116,15 +134,10 @@
                   (let [user-input  (reader/read-string (:text @app-state) #_(.-value (om/get-node owner "ta")))
                         ;user-input (.-value (om/get-node owner "ta"))
                         ]
-                    ;(js/console.log "the input is: " (last user-input))
                     (js/console.log "the thingy I'm checking is: " (:text @app-state))
                     (js/console.log "user input : " user-input)
                     (js/console.log "is a string? I'm checking " (string? (:text @app-state)))
-                    ;(put! output-chan (my-eval user-input global-env))
-                    ;(js/console.log "user input is: " user-input)
-                    ;(js/console.log "is string? " (string? user-input))
-                    ;(js/console.log "this is a string ? " (string? (str user-input)))
-                    ;(js/console.log "are equal? " (= (str user-input) user-input))
+                    (put! output-chan (my-eval user-input global-env))
                     )
                   (set! (.-value (om/get-node owner "ta")) ""))
                 (recur))))))
