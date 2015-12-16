@@ -18,7 +18,7 @@
                            :cons cons
                            :null? nil?
                            := =
-                           :+ +
+                           :+ (list 'primitive +)
                            :- -
                            :* *
                            :/ / }))
@@ -30,7 +30,9 @@
 
 (defn definition?
   [exp]
-  (tagged-list? exp 'define))
+  (if (list? exp)
+    (tagged-list? exp 'define)
+    false))
 
 (defn lookup?
   [exp]
@@ -66,12 +68,30 @@
   [exp]
   (symbol? exp))
 
+(defn primitive-implementation
+  [proc]
+  (first (rest proc)))
+
+(defn primitive-proc?
+  [proc]
+  (tagged-list? proc 'primitive))
+
+(defn apply-primitive-proc
+  [proc args]
+  (apply (primitive-implementation proc) args))
+
+(defn my-apply
+  [proc args]
+  (cond (primitive-proc? proc) (apply-primitive-proc proc args)
+        :else "unknown procedure type"))
+
 (defn my-eval
   [exp env]
   (js/console.log "the exp is " exp)
   (cond (self-evaluating? exp) exp
         (definition? exp)  (do (eval-definition exp global-env)
                                  ((keyword (first (rest exp))) @global-env))
+        (variable? exp) (lookup-variable exp global-env)
         (lookup? exp) (eval-lookup exp global-env)
 
         :else "ERROR ---- unknown exp"))
