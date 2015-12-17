@@ -15,7 +15,7 @@
                  :* *
                  :/ / })
 
-(def atom-env (atom {:#f false
+#_(def atom-env (atom {:#f false
                      :#t true
                      :car first
                      :cdr rest
@@ -26,6 +26,18 @@
                      :- -
                      :* *
                      :/ / }))
+
+(def atom-env (atom {:#f (list 'primitive false)
+                     :#t (list 'primitive false)
+                     :car (list 'primitive first)
+                     :cdr (list 'primitive rest)
+                     :cons (list 'primitive cons)
+                     :null? (list 'primitive nil?)
+                     := (list 'primitive =)
+                     :+ (list 'primitive +)
+                     :- (list 'primitive -)
+                     :* (list 'primitive *)
+                     :/ (list 'primitive /)}))
 
 (deftest example-passing-test
   (is (= :foo (l/thing))))
@@ -68,7 +80,8 @@
   (is (= "foo" (l/my-eval "foo" nil)))
   (is (l/variable? (first '(+ 1 2))))
   (is (= false (l/definition? (first '(+ 1 2)))))
-  (is (= (list 'primitive +) (l/my-eval (first '(+ 1 2)) atom-env))))
+  (is (= (list 'primitive +) (l/my-eval (first '(+ 1 2)) atom-env)))
+  (is (= 5 (l/my-eval (+ 2 3) ))))
 
 (deftest eval-def-test
   (l/eval-definition '(define foo 99) atom-env)

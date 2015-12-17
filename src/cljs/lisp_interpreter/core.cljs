@@ -11,18 +11,17 @@
 (defonce app-state (atom {:text "\" give me some in\""
                           :result "nil"}))
 
-(defonce global-env (atom {:#f false
-                           :#t true
-                           :car first
-                           :cdr rest
-                           :cons cons
-                           :null? nil?
-                           := =
+(defonce global-env (atom {:#f (list 'primitive false)
+                           :#t (list 'primitive false)
+                           :car (list 'primitive first)
+                           :cdr (list 'primitive rest)
+                           :cons (list 'primitive cons)
+                           :null? (list 'primitive nil?)
+                           := (list 'primitive =)
                            :+ (list 'primitive +)
-                           :- -
-                           :* *
-                           :/ / }))
-
+                           :- (list 'primitive -)
+                           :* (list 'primitive *)
+                           :/ (list 'primitive /)}))
 
 (defn tagged-list?
   [exp tag]
