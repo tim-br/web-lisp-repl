@@ -81,7 +81,10 @@
   (is (l/variable? (first '(+ 1 2))))
   (is (= false (l/definition? (first '(+ 1 2)))))
   (is (= (list 'primitive +) (l/my-eval (first '(+ 1 2)) atom-env)))
-  (is (= 5 (l/my-eval (+ 2 3) ))))
+  (is (= 5 (l/my-eval '(+ 2 3) atom-env)))
+  ;;; would like to get the following to pass in someway
+  ;;; I think its a matter of modifying l/lookup-variable
+  #_(is (= "ERROR ---- function/var does not exist" (l/my-eval '(! 2) atom-env))))
 
 (deftest eval-def-test
   (l/eval-definition '(define foo 99) atom-env)
@@ -97,7 +100,9 @@
 (deftest my-apply-test
   (is (= 3 (l/my-apply (list 'primitive +) (list 1 2))))
   (is (= 25 (l/apply-primitive-proc (list 'primitive +) (list 20 5))))
-  (is (= 9 (apply (l/primitive-implementation (list 'primitive +)) (list 5 4)))))
+  (is (= 9 (apply (l/primitive-implementation (list 'primitive +)) (list 5 4))))
+  (is (= 9 (l/my-apply (:* @atom-env) (list 3 3))))
+  (is (= 9 (l/my-apply (l/my-eval. '* atom-env) (list 3 3)))))
 
 (deftest variable-test
   (is (l/variable? (first '(+ 1 2)))))

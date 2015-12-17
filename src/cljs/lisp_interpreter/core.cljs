@@ -84,6 +84,15 @@
   (cond (primitive-proc? proc) (apply-primitive-proc proc args)
         :else "unknown procedure type"))
 
+(defn application? [exp]
+  (list? exp))
+
+(defn operator [exp]
+  (first exp))
+
+(defn operands [exp]
+  (rest exp))
+
 (defn my-eval
   [exp env]
   (js/console.log "the exp is " exp)
@@ -92,7 +101,8 @@
                                  ((keyword (first (rest exp))) @global-env))
         (variable? exp) (lookup-variable exp global-env)
         (lookup? exp) (eval-lookup exp global-env)
-
+        (application? exp) (my-apply (my-eval (operator exp) global-env)
+                                     (operands exp))
         :else "ERROR ---- unknown exp"))
 
 (defn do-s []
