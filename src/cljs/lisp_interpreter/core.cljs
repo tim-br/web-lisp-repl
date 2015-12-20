@@ -117,7 +117,7 @@
 
 (defn eval-sequence
   [exps env]
-  (cond (empty? (rest exps)) (my-eval (first exps) env) ;; this needs to be sequencable -- I could pass in a list instead
+  (cond (empty? (rest exps)) (my-eval (first exps) env)
         :else (do (my-eval (first exps) env)
                   (eval-sequence (rest exps) env))))
 
