@@ -155,7 +155,7 @@
   (js/console.log "the exp is " exp)
   (cond (self-evaluating? exp) exp
         (definition? exp)  (do (eval-definition exp env)
-                               ((keyword (first (rest exp))) @env))
+                               :ok #_((keyword (first (rest exp))) @env))
         (variable? exp) (lookup-variable exp env)
         (lookup? exp) (eval-lookup exp env)
         (lambda? exp) (make-proc (lambda-params exp) (lambda-body exp) env)
