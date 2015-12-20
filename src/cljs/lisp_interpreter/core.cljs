@@ -117,7 +117,7 @@
 
 (defn eval-sequence
   [exps env]
-  (cond (empty? (rest exps)) (my-eval (first exps) env)
+  (cond (empty? (rest exps)) (my-eval (first exps) env) ;; this needs to be sequencable -- I could pass in a list instead
         :else (do (my-eval (first exps) env)
                   (eval-sequence (rest exps) env))))
 
@@ -137,6 +137,7 @@
   (list? exp))
 
 (defn operator [exp]
+  (js/console.log "the first of exp is" (first exp))
   (first exp))
 
 (defn operands [exp]
@@ -152,16 +153,20 @@
 
 (defn my-eval
   [exp env]
-  (js/console.log "the exp is " exp)
+  #_(js/console.log "the exp is " exp)
   (cond (self-evaluating? exp) exp
         (definition? exp)  (do (eval-definition exp env)
                                :ok #_((keyword (first (rest exp))) @env))
         (variable? exp) (lookup-variable exp env)
         (lookup? exp) (eval-lookup exp env)
-        (lambda? exp) (make-proc (lambda-params exp) (lambda-body exp) env)
+        (lambda? exp) (do
+                        (js/console.log "hello ")
+                        (make-proc (lambda-params exp) (lambda-body exp) env))
         (application? exp) (letfn [(eval-sub-exps
                                     [exps env]
+                                    (js/console.log "the exps are " exps)
                                     (map #(my-eval % env) exps))]
+                             (js/console.log "the operator is " (operator exp))
                              (my-apply (my-eval (operator exp) env)
                                        (eval-sub-exps (operands exp) env)))
         :else "ERROR ---- unknown exp"))
@@ -242,9 +247,7 @@
               (let [foo (<! reade)]
                 (when foo
                   (let [user-input  (reader/read-string (:text @app-state) #_(.-value (om/get-node owner "ta")))
-                        ;user-input (.-value (om/get-node owner "ta"))
-                        output (my-eval user-input global-env)
-                        ]
+                        output (my-eval user-input global-env)]
                     (if (compound-proc? output)
                       (put! output-chan (list 'compound-procedure
                                            (procedure-params output)

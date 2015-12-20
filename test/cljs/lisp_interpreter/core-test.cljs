@@ -130,17 +130,32 @@
   (is (= 16 (l/my-eval '(+ (* 3 4) (+ 2 2)) atom-env)))
   (is (= 8 (l/my-eval '(* (/ 16 4) 2) atom-env)))
   (is (= 16 (l/my-eval '(- (* 4 5) (* 2 (+ 1 1))) atom-env)))
-  (is (= 4 (l/my-eval '(define foo (+ 2 2)) atom-env)))
+  (is (= :ok (l/my-eval '(define foo (+ 2 2)) atom-env)))
 
 
   ;;; would like to get the following to pass in someway
   ;;; I think its a matter of modifying l/lookup-variable
   #_(is (= "ERROR ---- function/var does not exist" (l/my-eval '(! 2) atom-env))))
 
+(deftest eval-functions
+  (is (= (list 'proc (list 'x) (list '+ 'x 1) atom-env) (l/my-eval '(fn (x) (+ x 1)) atom-env)))
+  (is (= '(fn (x) (+ x 1)) (l/operator (list '(fn (x) (+ x 1)) 42))))
+  (is (= (list 'proc (list 'x) (list '+ 'x 1) atom-env) (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env)))
+  (is (l/compound-proc? (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env)))
+  (is (= (list 42) (l/operands (list '(fn (x) (+ x 1)) 42))))
+  (is (= (list (list 99 32)) (l/operands (list '(fn (x) (+ x 1)) (list 99 32)))))
+  (is (= (list 99 32) (l/operands (list '(fn (x) (+ x 1)) 99 32))))
+  (is (= (list 99 32) (l/eval-sub-exps (l/operands (list '(fn (x) (+ x 1))  99 32)) atom-env))))
+
+(deftest apply-functions
+  (let [_ (l/my-apply (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env) (list 32))]
+    (is (= 32 (l/lookup-variable "x" atom-env)))
+    (is (not (= 4322 (l/lookup-variable "x" atom-env))))
+    (is (= 33 (l/eval-sequence (list (l/procedure-body (list 'proc (list 'x) (list '+ 1 'x) atom-env))) atom-env)))))
+
 (deftest eval-def-test
   (l/eval-definition '(define foo 99) atom-env)
   (is (= (:foo @atom-env) 99)))
-
 
 ;; I don't think I need these tests, may be clutter
 #_(deftest primitive-procedure?-test
@@ -181,5 +196,10 @@
 
 
 (deftest obj-test
-  (let [my-obj (#js {:a 1 :b 2 :c 3})]
-    (is (= 2 (get my-obj "a")))))
+  "just seeing how to interop with js objects directly"
+  (let [my-obj (js-obj "a" 1 "b" 2 "c" 3)
+        foo #js {:a 4 :b #js {:c 5 :x #js {:q 25}} :d 54}]
+    (is (= 2 (aget my-obj "b")))
+    (is (= 4 (aget foo "a")))
+    (is (= 5 (aget foo "b" "c")))
+    (is (= 25 (aget foo "b" "x" "q")))))
