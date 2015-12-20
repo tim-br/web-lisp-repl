@@ -243,11 +243,14 @@
                 (when foo
                   (let [user-input  (reader/read-string (:text @app-state) #_(.-value (om/get-node owner "ta")))
                         ;user-input (.-value (om/get-node owner "ta"))
+                        output (my-eval user-input global-env)
                         ]
-                    (js/console.log "the thingy I'm checking is: " (:text @app-state))
-                    (js/console.log "user input : " user-input)
-                    (js/console.log "is a string? I'm checking " (string? (:text @app-state)))
-                    (put! output-chan (my-eval user-input global-env)))
+                    (if (compound-proc? output)
+                      (put! output-chan (list 'compound-procedure
+                                           (procedure-params output)
+                                           (procedure-body output)
+                                           '<procedure-env>))
+                      (put! output-chan (my-eval user-input global-env))))
                   (set! (.-value (om/get-node owner "ta")) ""))
                 (recur))))))
         om/IRenderState

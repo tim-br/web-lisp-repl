@@ -179,3 +179,7 @@
         body (l/procedure-body fun)]
     #_(is (= 2 (l/eval-sequence body (l/extend-environment params my-args proc-env))))))
 
+
+(deftest obj-test
+  (let [my-obj (#js {:a 1 :b 2 :c 3})]
+    (is (= 2 (get my-obj "a")))))
