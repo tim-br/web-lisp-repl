@@ -8,10 +8,13 @@
 
 (enable-console-print!)
 
+(declare my-eval)
+
 (defonce app-state (atom {:text "\" give me some in\""
                           :result "nil"}))
 
-(defonce global-env (atom {:#f (list 'primitive false)
+(defonce global-env (atom {:frames {}
+                           :#f (list 'primitive false)
                            :#t (list 'primitive false)
                            :car (list 'primitive first)
                            :cdr (list 'primitive rest)
@@ -25,13 +28,41 @@
 
 (defn tagged-list?
   [exp tag]
-       (= (first exp) tag))
+  (= (first exp) tag))
 
 (defn definition?
   [exp]
   (if (list? exp)
     (tagged-list? exp 'define)
     false))
+
+(defn lambda?
+  [exp]
+  (tagged-list? exp 'fn))
+
+(defn make-procedure
+  [params body env]
+  (list 'proc params body env))
+
+(defn compound-proc?
+  [p]
+  (tagged-list? p 'proc))
+
+(defn procedure-params
+  [proc]
+  (first (rest proc)))
+
+(defn procedure-body
+  [proc]
+  (first (rest (rest proc))))
+
+(defn proc-env
+  [proc]
+  (-> proc
+      rest
+      rest
+      rest
+      first))
 
 (defn lookup?
   [exp]
@@ -50,7 +81,8 @@
   [var env]
   (js/console.log "the var is " var)
   (let [new-var (keyword var)]
-    (new-var @env)))
+    (or (new-var (:frames @env))
+        (new-var @env))))
 
 (defn eval-lookup
   [exp env]
@@ -79,9 +111,30 @@
   [proc args]
   (apply (primitive-implementation proc) args))
 
+(defn extend-environment
+  [variable value env]
+  (js/console.log "the class of variable is " variable)
+  (js/console.log "the class of value is " value)
+  (swap! env assoc-in [:frames (keyword (first variable))] (first value))
+  #_(if (not (or (empty? (rest variable)) (empty? (rest variable))))
+    (extend-environment (rest variable) (rest value) env)))
+
+(defn eval-sequence
+  [exps env]
+  (cond (empty? (rest exps)) (my-eval (first exps) env)
+        :else (do (my-eval (first exps) env)
+                  (eval-sequence (rest exps) env))))
+
 (defn my-apply
   [proc args]
   (cond (primitive-proc? proc) (apply-primitive-proc proc args)
+        (compound-proc? proc)  (do (extend-environment (procedure-params proc)
+                                                       args
+                                                       (proc-env proc))
+                                 #_(my-eval (procedure-body proc) (proc-env proc))
+                                   (eval-sequence
+                                      (procedure-body proc)
+                                      (proc-env proc)))
         :else "unknown procedure type"))
 
 (defn application? [exp]
@@ -97,13 +150,36 @@
   [exp env]
   (js/console.log "the exp is " exp)
   (cond (self-evaluating? exp) exp
-        (definition? exp)  (do (eval-definition exp global-env)
-                                 ((keyword (first (rest exp))) @global-env))
-        (variable? exp) (lookup-variable exp global-env)
-        (lookup? exp) (eval-lookup exp global-env)
-        (application? exp) (my-apply (my-eval (operator exp) global-env)
-                                     (operands exp))
+        (definition? exp)  (do (eval-definition exp env)
+                                 ((keyword (first (rest exp))) @env))
+        (variable? exp) (lookup-variable exp env)
+        (lookup? exp) (eval-lookup exp env)
+        (application? exp) (letfn [(eval-sub-exps
+                                    [exps env]
+                                    (map #(my-eval % env) exps))]
+                             (my-apply (my-eval (operator exp) env)
+                                       (eval-sub-exps (operands exp) env)))
         :else "ERROR ---- unknown exp"))
+
+;; (defn list-of-values
+;;   [exps env]
+;;   (loop [expressions exps environment env]
+;;     (if (nil? expressions)
+;;       nil
+;;       (cons (my-eval (first expressions) environment)
+;;             (recur (rest expressions) environment)))))
+
+#_(defn list-of-values
+  [exps env]
+  (if (empty? exps)
+    nil
+    (cons (my-eval (first exps) env)
+          (list-of-values (rest exps) env))))
+
+(defn eval-sub-exps
+  [exps env]
+  (map #(my-eval % env) exps))
+
 
 (defn do-s []
   (js/console.log "yo"))
@@ -166,8 +242,7 @@
                     (js/console.log "the thingy I'm checking is: " (:text @app-state))
                     (js/console.log "user input : " user-input)
                     (js/console.log "is a string? I'm checking " (string? (:text @app-state)))
-                    (put! output-chan (my-eval user-input global-env))
-                    )
+                    (put! output-chan (my-eval user-input global-env)))
                   (set! (.-value (om/get-node owner "ta")) ""))
                 (recur))))))
         om/IRenderState
