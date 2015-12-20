@@ -148,6 +148,11 @@
   (is (= (list 99 32) (l/eval-sub-exps (l/operands (list '(fn (x) (+ x 1))  99 32)) atom-env))))
 
 (deftest apply-functions
+  (let [fun '(fn (q) (* q 2))
+        proc (l/make-proc (l/lambda-params fun) (l/lambda-body fun) atom-env)]
+    (is (= (list 'proc (list 'q) (list '* 'q 2) atom-env) proc)))
+  (is (= 5  (l/my-apply (list 'proc '(x) (list '(- x 5)) atom-env)  (list 10))))
+  (is (= 12  (l/my-apply (list 'proc '(a b c) (list '(- (+ a b) c)) atom-env)  (list 10 5 3))))
   (let [_ (l/my-apply (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env) (list 32))]
     (is (= 32 (l/lookup-variable "x" atom-env)))
     (is (not (= 4322 (l/lookup-variable "x" atom-env))))
