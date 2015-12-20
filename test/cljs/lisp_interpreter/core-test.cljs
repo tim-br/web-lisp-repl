@@ -44,13 +44,20 @@
 (deftest extend-environment
   (let [foo (list 'proc '(x) (list '(- x 5)) atom-env)
         my-env atom-env
-        ;bar-env
         _ (swap! my-env assoc-in [:frames :x] 24)
         my-args (list 24)
         _    (l/extend-environment (l/procedure-params foo) my-args (l/proc-env foo))]
     (is (= @my-env @atom-env))
     (is (= 19 (l/my-eval '(- x 5) atom-env)))
-    (is (= 24 (l/eval-sequence '(- 5 x) atom-env)))))
+    (is (= 24 (l/eval-sequence '(- 5 x) atom-env))))
+  (let [fun (list 'procedure '(r q) '((- q (+ r 32))) atom-env)
+        my-args (list 3 9)
+        params (l/procedure-params fun)
+        proc-env (l/proc-env fun)
+        body (l/procedure-body fun)
+        _  (l/extend-environment params my-args proc-env)]
+    (is (= 3 (l/lookup-variable (keyword (first params)) proc-env)))
+    (is (= 9 (l/lookup-variable (keyword (first (rest params))) proc-env)))))
 
 (deftest proc-functions
   (is (= '(x) (l/procedure-params (list 'proc '(x) (list '(- x 5)) atom-env))))
@@ -149,9 +156,11 @@
   (is (= 9 (l/my-apply (:* @atom-env) (list 3 3))))
   (is (= 9 (l/my-apply (l/my-eval. '* atom-env) (list 3 3))))
   (is (l/compound-proc? '(proc 32)))
-  ;(is (= "foo" (l/my-apply '(proc 32 23 43) nil)))
   (is (= atom-env (l/proc-env (list 'proc '(x) (list '(- x 5)) atom-env))))
-  #_(is (= -1 (l/my-apply (list 'proc '(x) (list '(- x 5)) atom-env) (list 4)))))
+  (is (= 5 (l/my-apply (list 'proc '(x) (list '(/ 15 x)) atom-env) (list 3))))
+  (is (= -1 (l/my-apply (list 'proc '(x) (list '(- x 5)) atom-env) (list 4))))
+  (is (= 14 (l/my-apply (list 'proc '(x) (list '(* 2 x)) atom-env) (list 7))))
+  (is (= 40 (l/my-apply (list 'proc '(y) (list '(* y 4)) atom-env) (list 10)))))
 
 (deftest variable-test
   (is (l/variable? (first '(+ 1 2)))))

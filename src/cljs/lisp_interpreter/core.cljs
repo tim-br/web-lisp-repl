@@ -115,7 +115,10 @@
   [variable value env]
   (js/console.log "the class of variable is " variable)
   (js/console.log "the class of value is " value)
-  (swap! env assoc-in [:frames (keyword (first variable))] (first value))
+  (cond (or (empty? (rest variable)) (empty? (rest value)))
+          (swap! env assoc-in [:frames (keyword (first variable))] (first value))
+        :else (do (swap! env assoc-in [:frames (keyword (first variable))] (first value))
+                  (extend-environment (rest variable) (rest value) env)))
   #_(if (not (or (empty? (rest variable)) (empty? (rest variable))))
     (extend-environment (rest variable) (rest value) env)))
 
