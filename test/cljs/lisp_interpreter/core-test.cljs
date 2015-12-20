@@ -130,6 +130,7 @@
   (is (= 16 (l/my-eval '(+ (* 3 4) (+ 2 2)) atom-env)))
   (is (= 8 (l/my-eval '(* (/ 16 4) 2) atom-env)))
   (is (= 16 (l/my-eval '(- (* 4 5) (* 2 (+ 1 1))) atom-env)))
+  (is (= 4 (l/my-eval '(define foo (+ 2 2)) atom-env)))
 
 
   ;;; would like to get the following to pass in someway
@@ -160,7 +161,9 @@
   (is (= 5 (l/my-apply (list 'proc '(x) (list '(/ 15 x)) atom-env) (list 3))))
   (is (= -1 (l/my-apply (list 'proc '(x) (list '(- x 5)) atom-env) (list 4))))
   (is (= 14 (l/my-apply (list 'proc '(x) (list '(* 2 x)) atom-env) (list 7))))
-  (is (= 40 (l/my-apply (list 'proc '(y) (list '(* y 4)) atom-env) (list 10)))))
+  (is (= 40 (l/my-apply (list 'proc '(y) (list '(* y 4)) atom-env) (list 10))))
+  (is (= 5 (l/my-apply (list 'proc '(v s) (list '(- (* v 3) s)) atom-env) (list 3 4))))
+  (is (= 7 (l/my-apply (list 'proc '(v s r) (list '(- (* v 3) (/ r s))) atom-env) (list 3 4 8)))))
 
 (deftest variable-test
   (is (l/variable? (first '(+ 1 2)))))

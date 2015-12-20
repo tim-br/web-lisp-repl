@@ -40,7 +40,7 @@
   [exp]
   (tagged-list? exp 'fn))
 
-(defn make-procedure
+(defn make-proc
   [params body env]
   (list 'proc params body env))
 
@@ -70,10 +70,7 @@
 
 (defn eval-definition
   [exp env]
-  (js/console.log "what is the func? " exp)
-  (js/console.log "is seqable? " (seq? exp))
-  (swap! env assoc (keyword (first (rest exp))) (last exp))
-  (js/console.log "do I get here?"))
+  (swap! env assoc (keyword (first (rest exp))) (my-eval (last exp) env)))
 
 (defn lookup-variable
   ;[var]
@@ -113,14 +110,10 @@
 
 (defn extend-environment
   [variable value env]
-  (js/console.log "the class of variable is " variable)
-  (js/console.log "the class of value is " value)
   (cond (or (empty? (rest variable)) (empty? (rest value)))
           (swap! env assoc-in [:frames (keyword (first variable))] (first value))
         :else (do (swap! env assoc-in [:frames (keyword (first variable))] (first value))
-                  (extend-environment (rest variable) (rest value) env)))
-  #_(if (not (or (empty? (rest variable)) (empty? (rest variable))))
-    (extend-environment (rest variable) (rest value) env)))
+                  (extend-environment (rest variable) (rest value) env))))
 
 (defn eval-sequence
   [exps env]
@@ -135,10 +128,10 @@
                                                        args
                                                        (proc-env proc))
                                  #_(my-eval (procedure-body proc) (proc-env proc))
-                                   (eval-sequence
+                                  (eval-sequence
                                       (procedure-body proc)
                                       (proc-env proc)))
-        :else "unknown procedure type"))
+        :else "ERROR: unknown procedure type"))
 
 (defn application? [exp]
   (list? exp))
@@ -149,14 +142,23 @@
 (defn operands [exp]
   (rest exp))
 
+(defn lambda-params
+  [exp]
+  (first (rest exp)))
+
+(defn lambda-body
+  [exp]
+  (first (rest (rest exp))))
+
 (defn my-eval
   [exp env]
   (js/console.log "the exp is " exp)
   (cond (self-evaluating? exp) exp
         (definition? exp)  (do (eval-definition exp env)
-                                 ((keyword (first (rest exp))) @env))
+                               ((keyword (first (rest exp))) @env))
         (variable? exp) (lookup-variable exp env)
         (lookup? exp) (eval-lookup exp env)
+        (lambda? exp) (make-proc (lambda-params exp) (lambda-body exp) env)
         (application? exp) (letfn [(eval-sub-exps
                                     [exps env]
                                     (map #(my-eval % env) exps))]
