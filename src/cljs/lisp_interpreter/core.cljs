@@ -73,7 +73,6 @@
   ;[var]
   ;(lookup-variable var global-env)
   [var env]
-  (js/console.log "the var is " var)
   (let [new-var (keyword var)]
     (or (new-var (:frames @env))
         (new-var @env))))
@@ -137,7 +136,6 @@
   (list? exp))
 
 (defn operator [exp]
-  (js/console.log "the first of exp is" (first exp))
   (first exp))
 
 (defn operands [exp]
@@ -164,7 +162,6 @@
         (variable? exp) (lookup-variable exp env)
         (lookup? exp) (eval-lookup exp env)
         (lambda? exp) (do
-                        (js/console.log "hello ")
                         (make-proc (lambda-params exp) (lambda-body exp) env))
         (application? exp) (my-apply (my-eval (operator exp) env)
                                      (eval-sub-exps (operands exp) env))
