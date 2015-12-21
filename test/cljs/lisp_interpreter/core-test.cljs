@@ -41,6 +41,8 @@
                      :* (list 'primitive *)
                      :/ (list 'primitive /)}))
 
+(def mock-atom (atom {:frames {}}))
+
 (deftest extend-environment
   (let [foo (list 'proc '(x) (list '(- x 5)) atom-env)
         my-env atom-env
@@ -62,6 +64,7 @@
 (deftest proc-functions
   (is (= '(x) (l/procedure-params (list 'proc '(x) (list '(- x 5)) atom-env))))
   (is (= atom-env (l/proc-env (list 'proc '(x) (list '(- x 5)) atom-env))))
+  #_(is (= atom-env (l/proc-env '(proc (x) (list (- x 5)) atom-env))))
   (is (= (list '(- x 5)) (l/procedure-body (list 'proc '(x) (list '(- x 5)) atom-env)))))
 
 (deftest eval-sub-exps
@@ -96,11 +99,6 @@
         body (l/procedure-body fun)
         _  (l/extend-environment params my-args proc-env)]
     (is (= 3 (l/lookup-variable (keyword (first params)) proc-env)))))
-
-;; I wrote this test to verify that derefenced atoms
-;; are equivalent to their non-atom equivalent
-#_(deftest atom-test
-  (is (= true (= @atom-env global-env))))
 
 (deftest tagged-test
   (is (l/tagged-list? ['define 32] 'define))
@@ -138,19 +136,48 @@
   #_(is (= "ERROR ---- function/var does not exist" (l/my-eval '(! 2) atom-env))))
 
 (deftest eval-functions
-  (is (= (list 'proc (list 'x) (list '+ 'x 1) atom-env) (l/my-eval '(fn (x) (+ x 1)) atom-env)))
-  (is (= '(fn (x) (+ x 1)) (l/operator (list '(fn (x) (+ x 1)) 42))))
-  (is (= (list 'proc (list 'x) (list '+ 'x 1) atom-env) (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env)))
+  ;(is (= (list 'proc (list 'x) (list '+ 'x 1) atom-env) (l/my-eval '(fn (x) (+ x 1)) atom-env)))
+  ;(is (= '(fn (x) (+ x 1)) (l/operator (list '(fn (x) (+ x 1)) 42))))
+  ;(is (= (list 'proc (list 'x) (list '+ 'x 1) atom-env) (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env)))
   (is (l/compound-proc? (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env)))
   (is (= (list 42) (l/operands (list '(fn (x) (+ x 1)) 42))))
   (is (= (list (list 99 32)) (l/operands (list '(fn (x) (+ x 1)) (list 99 32)))))
   (is (= (list 99 32) (l/operands (list '(fn (x) (+ x 1)) 99 32))))
-  (is (= (list 99 32) (l/eval-sub-exps (l/operands (list '(fn (x) (+ x 1))  99 32)) atom-env))))
+  (is (= (list 99 32) (l/eval-sub-exps (l/operands (list '(fn (x) (+ x 1))  99 32)) atom-env)))
+  ;;; SUCCESS !
+  (is (= 4 (l/my-eval '((fn (x) (* x x)) 2) atom-env))))
+
+(deftest make-proc
+  (let [exp '(fn (q) (* q 2))]
+    (is (= (list 'proc '(q) (list '(* q 2)) mock-atom) (l/make-proc (l/lambda-params exp) (l/lambda-body exp) mock-atom)))))
+
+(deftest my-apply-eval
+  (let [proc (list 'proc '(q) (list '(* q 2)) atom-env)
+        args '(4)]
+    (is (l/compound-proc? proc))
+    (is (= (l/proc-env proc) atom-env))
+    #_(l/extend-environment (l/procedure-params proc)
+                                    args
+                                    (l/proc-env proc))
+    ;;; the following test works fine?!?!
+    (is (= 8 (do (l/extend-environment (l/procedure-params proc)
+                                    args
+                                    (l/proc-env proc))
+              (l/eval-sequence
+               (l/procedure-body proc)
+               (l/proc-env proc)))))))
 
 (deftest apply-functions
   (let [fun '(fn (q) (* q 2))
-        proc (l/make-proc (l/lambda-params fun) (l/lambda-body fun) atom-env)]
-    (is (= (list 'proc (list 'q) (list '* 'q 2) atom-env) proc)))
+        proc (l/make-proc (l/lambda-params fun) (l/lambda-body fun) atom-env)
+        new-proc (l/my-eval fun atom-env)
+        exp '((fn (q) (* q 2)) 43)]
+    (is (= (l/operator exp) fun))
+    (is (= (l/operands exp) (list 43)))
+    (is (= proc new-proc))
+    ;; I need to get the following test to pass, most important test at this point
+    (is (= 8 (l/my-apply new-proc (list 4))))
+    #_(is (= 86 (l/my-eval exp atom-env))))
   (is (= 5  (l/my-apply (list 'proc '(x) (list '(- x 5)) atom-env)  (list 10))))
   (is (= 12  (l/my-apply (list 'proc '(a b c) (list '(- (+ a b) c)) atom-env)  (list 10 5 3))))
   (let [_ (l/my-apply (l/my-eval (l/operator (list '(fn (x) (+ x 1)) 42)) atom-env) (list 32))]
@@ -162,13 +189,13 @@
   (l/eval-definition '(define foo 99) atom-env)
   (is (= (:foo @atom-env) 99)))
 
-;; I don't think I need these tests, may be clutter
-#_(deftest primitive-procedure?-test
-  (is (l/primitive-procedure? (list 'primitive 43)))
-  (is (l/primitive-procedure? '(primitive :foo))))
+;; ;; I don't think I need these tests, may be clutter
+;; #_(deftest primitive-procedure?-test
+;;   (is (l/primitive-procedure? (list 'primitive 43)))
+;;   (is (l/primitive-procedure? '(primitive :foo))))
 
-#_(deftest primitive-implementation-test
-  (is (= 5 (l/apply-primitive-proc ('primitive +) '(3 2)))))
+;; #_(deftest primitive-implementation-test
+;;   (is (= 5 (l/apply-primitive-proc ('primitive +) '(3 2)))))
 
 (deftest my-apply
   (is (= 3 (l/my-apply (list 'primitive +) (list 1 2))))

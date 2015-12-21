@@ -42,7 +42,7 @@
 
 (defn make-proc
   [params body env]
-  (list 'proc params body env))
+  (list 'proc params (list body) env))
 
 (defn compound-proc?
   [p]
@@ -59,10 +59,7 @@
 (defn proc-env
   [proc]
   (-> proc
-      rest
-      rest
-      rest
-      first))
+      last))
 
 (defn lookup?
   [exp]
@@ -110,6 +107,7 @@
 
 (defn extend-environment
   [variable value env]
+  ;(js/console.log "the env is " @env)
   (cond (or (empty? (rest variable)) (empty? (rest value)))
           (swap! env assoc-in [:frames (keyword (first variable))] (first value))
         :else (do (swap! env assoc-in [:frames (keyword (first variable))] (first value))
@@ -123,6 +121,8 @@
 
 (defn my-apply
   [proc args]
+  ;(js/console.log "the proc is " proc)
+  ;(js/console.log "the args are " args)
   (cond (primitive-proc? proc) (apply-primitive-proc proc args)
         (compound-proc? proc)  (do (extend-environment (procedure-params proc)
                                                        args
@@ -151,6 +151,10 @@
   [exp]
   (first (rest (rest exp))))
 
+(defn eval-sub-exps
+  [exps env]
+  (map #(my-eval % env) exps))
+
 (defn my-eval
   [exp env]
   #_(js/console.log "the exp is " exp)
@@ -162,13 +166,8 @@
         (lambda? exp) (do
                         (js/console.log "hello ")
                         (make-proc (lambda-params exp) (lambda-body exp) env))
-        (application? exp) (letfn [(eval-sub-exps
-                                    [exps env]
-                                    (js/console.log "the exps are " exps)
-                                    (map #(my-eval % env) exps))]
-                             (js/console.log "the operator is " (operator exp))
-                             (my-apply (my-eval (operator exp) env)
-                                       (eval-sub-exps (operands exp) env)))
+        (application? exp) (my-apply (my-eval (operator exp) env)
+                                     (eval-sub-exps (operands exp) env))
         :else "ERROR ---- unknown exp"))
 
 ;; (defn list-of-values
@@ -185,11 +184,6 @@
     nil
     (cons (my-eval (first exps) env)
           (list-of-values (rest exps) env))))
-
-(defn eval-sub-exps
-  [exps env]
-  (map #(my-eval % env) exps))
-
 
 (defn do-s []
   (js/console.log "yo"))
