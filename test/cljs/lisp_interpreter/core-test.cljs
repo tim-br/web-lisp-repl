@@ -222,7 +222,8 @@
     #_(is (= 2 (l/eval-sequence body (l/extend-environment params my-args proc-env))))))
 
 (deftest primitive-procs
-  (is (= 4 (l/my-eval '(car [4 3 5 2]) atom-env))))
+  (is (= 54 (l/my-eval '(car '(54 4 3 2 1)) atom-env)))
+  (is (= "f" (l/my-eval '(car '("f" 4 3 2 1)) atom-env))))
 
 (deftest obj-test
   "just seeing how to interop with js objects directly"

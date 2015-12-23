@@ -94,6 +94,10 @@
   [exp]
   (symbol? exp))
 
+(defn quoted?
+  [exp]
+  (tagged-list? exp 'quote))
+
 (defn primitive-implementation
   [proc]
   (first (rest proc)))
@@ -155,6 +159,10 @@
   [exps env]
   (map #(my-eval % env) exps))
 
+(defn content-of-quoted
+  [exp]
+  (first (rest exp)))
+
 (defn my-eval
   [exp env]
   #_(js/console.log "the exp is " exp)
@@ -162,6 +170,7 @@
         (definition? exp)  (do (eval-definition exp env)
                                :ok #_((keyword (first (rest exp))) @env))
         (variable? exp) (lookup-variable exp env)
+        (quoted? exp) (content-of-quoted exp)
         (lookup? exp) (eval-lookup exp env)
         (lambda? exp) (do
                         (make-proc (lambda-params exp) (lambda-body exp) env))
