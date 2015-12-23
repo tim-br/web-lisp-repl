@@ -28,7 +28,9 @@
 
 (defn tagged-list?
   [exp tag]
-  (= (first exp) tag))
+  (if (list? exp)
+    (= (first exp) tag)
+    false))
 
 (defn definition?
   [exp]
