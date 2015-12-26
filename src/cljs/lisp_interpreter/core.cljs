@@ -26,6 +26,14 @@
                            :* (list 'primitive *)
                            :/ (list 'primitive /)}))
 
+(def my-canvas (.getElementById js/document "canvas"))
+
+(def ct (.getContext my-canvas "2d"))
+
+(defn fill-rect [col x-cord y-cord width height]
+  (set! (.-fillStyle ct) col)
+  (.fillRect ct x-cord y-cord width height))
+
 (defn tagged-list?
   [exp tag]
   (if (list? exp)
@@ -163,6 +171,19 @@
   [exp]
   (first (rest exp)))
 
+(defn fill-rect?
+  [exp]
+  (tagged-list? exp 'fill-rect))
+
+(defn eval-fill-rect
+  [exp env]
+  (fill-rect
+   (first (rest exp))
+   (first (rest (rest exp)))
+   (first (rest (rest (rest exp))))
+   (first (rest (rest (rest (rest exp)))))
+   (first (rest (rest (rest (rest (rest exp))))))))
+
 (defn my-eval
   [exp env]
   #_(js/console.log "the exp is " exp)
@@ -174,6 +195,7 @@
         (lookup? exp) (eval-lookup exp env)
         (lambda? exp) (do
                         (make-proc (lambda-params exp) (lambda-body exp) env))
+        (fill-rect? exp) (eval-fill-rect exp env)
         (application? exp) (my-apply (my-eval (operator exp) env)
                                      (eval-sub-exps (operands exp) env))
         :else "ERROR ---- unknown exp"))
@@ -213,7 +235,9 @@
       (render-state [this {:keys [reade]}]
         (dom/button #js {:onKeyDown #(when (= (.-key %) "Enter")
                                     (put! reade :anything))
-                         :onClick #(put! reade :anything)}
+                         :onClick #(do
+                                     (fill-rect ct)
+                                     (put! reade :anything))}
                     (:text text)))))
 
 (defn result-com [res owner]
@@ -255,7 +279,9 @@
                                            (procedure-params output)
                                            (procedure-body output)
                                            '<procedure-env>))
-                      (put! output-chan (my-eval user-input global-env))))
+                      (if-let [output (my-eval user-input global-env)]
+                        (put! output-chan output)
+                        (put! output-chan "NIL RETURN"))))
                   (set! (.-value (om/get-node owner "ta")) ""))
                 (recur))))))
         om/IRenderState
