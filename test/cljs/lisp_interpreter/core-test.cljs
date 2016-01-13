@@ -233,3 +233,13 @@
     (is (= 4 (aget foo "a")))
     (is (= 5 (aget foo "b" "c")))
     (is (= 25 (aget foo "b" "x" "q")))))
+
+(deftest advanced-eval
+  (let [_(l/my-eval '(define my-inc (fn (x) (+ x 1))) atom-env)
+        _ (l/my-eval '(define my-dec (fn (x) (- x 1))) atom-env)
+        _ (l/my-eval '(define fun (fn (x) (my-dec (my-inc x)))) atom-env)
+        _ (l/my-eval '(define sum (fn(x y) (+ x y))) atom-env)]
+    (is (= 76 (l/my-eval '(fun 76) atom-env)))
+    (is (= 3 (l/my-eval '(my-inc 2) atom-env)))
+    (is (= 87 (l/my-eval '(my-dec 88) atom-env)))
+    (is (= 7 (l/my-eval '(sum 3 4) atom-env)))))
