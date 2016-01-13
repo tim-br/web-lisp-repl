@@ -1,7 +1,7 @@
 (ns lisp_interpreter.core-test
   (:require-macros [cljs.test :refer (is deftest testing)])
   (:require [cljs.test]
-            [lisp-interpreter.core :as l]))
+            [lisp-interpreter.interpreter :as l]))
 
 (def global-env {:#f false
                  :#t true
