@@ -13,10 +13,6 @@
   (js/console.log "is string in handle-change? " (string? param)) ;; true
   (swap! l/app-state assoc :text param))
 
-#_(defn is-first-char-quote? [str]
-  (let [ch (js/charAt str 0)]
-    (= ch "")))
-
 (defn button [text owner]
   (reify
     om/IRenderState

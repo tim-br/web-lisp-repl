@@ -174,14 +174,6 @@
                                      (eval-sub-exps (operands exp) env))
         :else "ERROR ---- unknown exp"))
 
-;; (defn list-of-values
-;;   [exps env]
-;;   (loop [expressions exps environment env]
-;;     (if (nil? expressions)
-;;       nil
-;;       (cons (my-eval (first expressions) environment)
-;;             (recur (rest expressions) environment)))))
-
 #_(defn list-of-values
   [exps env]
   (if (empty? exps)
